@@ -2,9 +2,12 @@ import tensorflow as tf
 from layers import ConvBlock , ResnetBlock
 
 class Resnet50(tf.keras.Model):
-    def __init__(self , input_size):
+    def __init__(self , input_size , include_top = False , num_classes = None):
         super(Resnet50, self).__init__(name  = "Resnet50_backbone")
         print("Initializing Resnet50 as backbone")
+        if include_top:
+            self.include_top = include_top
+            self.num_classes = num_classes
 
         self.conv1 = ConvBlock(True , True , 7 , 2 , True , 64)
         self.max_pool = tf.keras.layers.MaxPool2D(pool_size = (3,3) , strides = (2,2), padding = "SAME")
@@ -29,6 +32,10 @@ class Resnet50(tf.keras.Model):
         for i in range(2):
             self.res_block5.append(ResnetBlock(False , [1 , 3 , 1] , [512 , 512 , 2048] , [False , True , False] , [1, 1, 1]))
 
+        if self.include_top:
+            self.avg_pool = tf.keras.layers.AveragePooling2D(pool_size = (7,7) , strides = (1,1))
+            self.fc = tf.keras.layers.Dense(units = self.num_classes , activation = "softmax")
+
     def call(self , inputs):
         conv1 = self.conv1(inputs)
         max_pool = self.max_pool(conv1)
@@ -49,6 +56,11 @@ class Resnet50(tf.keras.Model):
         for i in range(1 , 3):
             res_block5 = self.res_block5[i](res_block5)
 
+        if self.include_top:
+            avg_pool = self.avg_pool(res_block5)
+            output = self.fc(avg_pool)
+            return output
+
         return [res_block2 , res_block3 , res_block4 , res_block5]
 
     def build_graph(self):
@@ -56,7 +68,7 @@ class Resnet50(tf.keras.Model):
         return tf.keras.Model(inputs = [x] , outputs = self.call(x))
 
 def test_model():
-    resnet50 = Resnet50(224)
+    resnet50 = Resnet50(224 , include_top = True , num_classes = 2)
     resnet50.build(input_shape = [1,224,224,3])
     resnet50.build_graph().summary()
     # tf.keras.utils.plot_model(resnet50.build_graph(), to_file='./arch_png/resnet50.png', show_shapes=True, show_dtype=False,
