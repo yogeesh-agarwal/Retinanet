@@ -3,7 +3,7 @@ import math
 import cv2
 
 def test_resnet_dg(true_csv_file , data_path):
-    batch_size = 10
+    batch_size = 5
     num_instances = 10
     resnet_dg = ResnetDataGenerator(true_csv_file, data_path , batch_size, num_instances = num_instances , norm = False)
     for i in range(math.ceil(num_instances / batch_size)):
