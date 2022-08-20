@@ -13,8 +13,9 @@ class Resnet50(tf.keras.Model):
         #define loss function and metrics
         self.resnet_loss = tf.keras.losses.CategoricalCrossentropy()
         self.train_loss_tracker = tf.keras.metrics.Mean(name = "train_loss")
-        self.train_acc = tf.keras.metrics.Accuracy(name = "train_acc")
-        self.val_acc = tf.keras.metrics.Accuracy(name = "val_acc")
+        self.train_acc = tf.keras.metrics.CategoricalAccuracy(name = "train_acc")
+        self.val_loss_tracker = tf.keras.metrics.Mean(name = "val_loss")
+        self.val_acc = tf.keras.metrics.CategoricalAccuracy(name = "val_acc")
 
         #define resnet model
         self.conv1 = ConvBlock(True , True , 7 , 2 , True , 64, self.index)
@@ -102,12 +103,14 @@ class Resnet50(tf.keras.Model):
         images , labels = data
         preds = self(images , training = False)
         loss = self.resnet_loss(labels , preds)
+        self.val_loss_tracker.update_state(loss)
         self.val_acc.update_state(labels , preds)
-        return {"val_accuracy" : self.val_acc.result()}
+        return {"val_loss" : self.val_loss_tracker.result() ,
+                "val_accuracy" : self.val_acc.result()}
 
     @property
     def metrics(self):
-        return [self.train_loss_tracker , self.train_acc , self.val_acc]
+        return [self.train_loss_tracker , self.train_acc , self.val_loss_tracker , self.val_acc]
 
     def build_graph(self):
         x = tf.keras.Input(shape = [224 , 224 , 3])
